@@ -1,3 +1,4 @@
+import { raw } from "body-parser";
 import db from "../models/index";
 import bcrypt from 'bcryptjs';
 
@@ -104,20 +105,22 @@ let createNewUser = (data) => {
             if (check === true) {
                 resolve({
                     errCode: 1,
-                    message: 'Your email is already in used, plz try another email'
+                    errMessage: 'Your email is already in used, plz try another email'
+                })
+            } else {
+                let hashPassWordFromBcrypt = await hashUserPassword(data.password);
+                await db.User.create({
+                    email: data.email,
+                    password: hashPassWordFromBcrypt,
+                    firstName: data.firstName,
+                    lastName: data.lastName,
+                    address: data.address,
+                    phonenumber: data.phonenumber,
+                    gender: data.gender === '1' ? true : false,
+                    roleId: data.roleId,
                 })
             }
-            let hashPassWordFromBcrypt = await hashUserPassword(data.password);
-            await db.User.create({
-                email: data.email,
-                password: hashPassWordFromBcrypt,
-                firstName: data.firstName,
-                lastName: data.lastName,
-                address: data.address,
-                phonenumber: data.phonenumber,
-                gender: data.gender === '1' ? true : false,
-                roleId: data.roleId,
-            })
+
             resolve({
                 errCode: 0,
                 message: 'OK'
@@ -128,7 +131,7 @@ let createNewUser = (data) => {
         }
     })
 }
-let deleteUser = (id) => {
+let deleteUser = (userId) => {
     return new Promise(async (resolve, reject) => {
         let foundUser = await db.User.findOne({
             where: { id: userId }
@@ -139,7 +142,9 @@ let deleteUser = (id) => {
                 errMessage: `The user isn't exist`
             })
         }
-        await db.foundUser.destroy({
+        console.log(`cuona`, foundUser)
+
+        await db.User.destroy({
             where: { id: userId }
         });
         resolve({
@@ -148,10 +153,50 @@ let deleteUser = (id) => {
         })
     })
 }
+let updateUserData = (data) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!data.id) {
+                resolve({
+                    errCode: 2,
+                    errMessage: `Missing required parameters!`
+                })
+            }
+            let user = await db.User.findOne({
+                where: { id: data.id },
+                raw: false
+            })
+            if (user) {
+                user.firstName = data.firstName;
+                user.lastName = data.lastName,
+                    user.address = data.address,
+                    await user.save()
+                // await db.User.save({
+                //     firstName: data.firstName,
+                //     lastName: data.lastName,
+                //     address: data.address,
+                // })
+                resolve({
+                    errCode: 0,
+                    message: 'Update the user suceeds!'
+                })
+            } else {
+                resolve({
+                    errCode: 1,
+                    errMessage: `User's not found!`
+                });
+            }
 
+
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
 module.exports = {
     handleUserLogin: handleUserLogin,
     getAllUsers: getAllUsers,
     createNewUser: createNewUser,
-    deleteUser: deleteUser
+    deleteUser: deleteUser,
+    updateUserData: updateUserData
 }
