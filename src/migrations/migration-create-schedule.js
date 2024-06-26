@@ -21,7 +21,7 @@ module.exports = {
                 allowNull: false,
                 type: Sequelize.STRING
             },
-            doctorId: {
+            tutorId: {
                 allowNull: false,
                 type: Sequelize.INTEGER
             },

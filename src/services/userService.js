@@ -1,6 +1,7 @@
 import { raw } from "body-parser";
 import db from "../models/index";
 import bcrypt from 'bcryptjs';
+import { where } from "sequelize";
 
 const salt = bcrypt.genSaltSync(10);
 
@@ -24,7 +25,7 @@ let handleUserLogin = (email, password) => {
             let isExist = await checkUserEmail(email);
             if (isExist) {
                 let user = await db.User.findOne({
-                    attributes: ['email', 'roleId', 'password'],
+                    attributes: ['email', 'roleId', 'password', 'firstName', 'lastName'],
                     where: { email: email },
                     raw: true
                 });
@@ -116,8 +117,10 @@ let createNewUser = (data) => {
                     lastName: data.lastName,
                     address: data.address,
                     phonenumber: data.phonenumber,
-                    gender: data.gender === '1' ? true : false,
+                    gender: data.gender,
                     roleId: data.roleId,
+                    positionId: data.positionId,
+                    image: data.avatar
                 })
             }
 
@@ -156,7 +159,7 @@ let deleteUser = (userId) => {
 let updateUserData = (data) => {
     return new Promise(async (resolve, reject) => {
         try {
-            if (!data.id) {
+            if (!data.id || !data.roleId || !data.positionId || !data.gender) {
                 resolve({
                     errCode: 2,
                     errMessage: `Missing required parameters!`
@@ -168,14 +171,18 @@ let updateUserData = (data) => {
             })
             if (user) {
                 user.firstName = data.firstName;
-                user.lastName = data.lastName,
-                    user.address = data.address,
-                    await user.save()
-                // await db.User.save({
-                //     firstName: data.firstName,
-                //     lastName: data.lastName,
-                //     address: data.address,
-                // })
+                user.lastName = data.lastName;
+                user.address = data.address;
+                user.gender = data.gender;
+                user.positionId = data.positionId;
+                user.roleId = data.roleId;
+                user.phonenumber = data.phonenumber;
+                if (data.avatar) {
+                    user.image = data.avatar
+
+                }
+                await user.save()
+
                 resolve({
                     errCode: 0,
                     message: 'Update the user suceeds!'
@@ -193,10 +200,36 @@ let updateUserData = (data) => {
         }
     })
 }
+let getAllCodeService = (typeInput) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!typeInput) {
+                resolve({
+                    errCode: -1,
+                    errMessage: 'Missing required parameter !'
+                });
+            } else {
+                let res = {};
+                let allcode = await db.Allcode.findAll({
+                    where: { type: typeInput }
+                });
+
+                res.errCode = 0;
+                res.data = allcode;
+                resolve(res);
+            }
+
+
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
 module.exports = {
     handleUserLogin: handleUserLogin,
     getAllUsers: getAllUsers,
     createNewUser: createNewUser,
     deleteUser: deleteUser,
-    updateUserData: updateUserData
+    updateUserData: updateUserData,
+    getAllCodeService: getAllCodeService,
 }
